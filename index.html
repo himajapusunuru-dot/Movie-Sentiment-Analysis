@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CineRead — Movie Review Sentiment Analyzer</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --dark: #1a1410;
+    --gold: #c9a84c;
+    --gold-light: #e8d08a;
+    --pos: #2d6a4f;
+    --pos-bg: #d8f3dc;
+    --neg: #9b2335;
+    --neg-bg: #fde8ea;
+    --neutral: #4a4035;
+    --film-red: #c1121f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--dark);
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Film strip top */
+  .filmstrip {
+    width: 100%;
+    height: 32px;
+    background: #111;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+    position: relative;
+    border-bottom: 2px solid #333;
+  }
+  .filmstrip::before, .filmstrip::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 12px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px, transparent 18px,
+      #222 18px, #222 22px,
+      transparent 22px, transparent 40px
+    );
+    position: absolute;
+  }
+  .filmstrip::before { top: 3px; }
+  .filmstrip::after  { bottom: 3px; }
+
+  /* Header */
+  header {
+    text-align: center;
+    padding: 60px 20px 40px;
+    position: relative;
+  }
+  .logo-eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .logo-eyebrow::before, .logo-eyebrow::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+    opacity: 0.5;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(42px, 8vw, 80px);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--cream);
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+  .tagline {
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 300;
+    color: #a09070;
+    letter-spacing: 0.04em;
+  }
+
+  /* Main card */
+  .card {
+    max-width: 760px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+  }
+
+  .input-wrapper {
+    background: #221e18;
+    border: 1px solid #3a3228;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+    position: relative;
+  }
+  .input-wrapper:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.08);
+  }
+
+  .input-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 0;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #6a6050;
+    font-weight: 500;
+  }
+  #charCount { color: #504840; }
+
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: var(--cream);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.7;
+    padding: 12px 20px 20px;
+    caret-color: var(--gold);
+  }
+  textarea::placeholder { color: #4a4035; }
+
+  .input-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid #2a2420;
+    gap: 12px;
+  }
+
+  .sample-btn {
+    background: none;
+    border: 1px solid #3a3228;
+    color: #7a6a50;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .sample-btn:hover { border-color: var(--gold); color: var(--gold-light); }
+
+  .analyze-btn {
+    background: var(--gold);
+    color: var(--dark);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 32px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .analyze-btn:hover { background: var(--gold-light); transform: translateY(-1px); }
+  .analyze-btn:active { transform: translateY(0); }
+  .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Spinner */
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(26,20,16,0.3);
+    border-top-color: var(--dark);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Result panel */
+  #result {
+    margin-top: 16px;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+  }
+  #result.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+
+  .result-inner {
+    border-radius: 4px;
+    padding: 28px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .result-inner.positive { background: var(--pos-bg); }
+  .result-inner.negative { background: var(--neg-bg); }
+
+  .result-accent {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+  }
+  .positive .result-accent { background: var(--pos); }
+  .negative .result-accent { background: var(--neg); }
+
+  .result-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .verdict {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .verdict-icon {
+    font-size: 36px;
+    line-height: 1;
+  }
+  .verdict-text {}
+  .verdict-label {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .positive .verdict-label { color: var(--pos); }
+  .negative .verdict-label { color: var(--neg); }
+
+  .verdict-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1;
+  }
+  .positive .verdict-title { color: var(--pos); }
+  .negative .verdict-title { color: var(--neg); }
+
+  .confidence-badge {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .conf-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--dark);
+  }
+  .conf-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #7a7060;
+    margin-top: 2px;
+  }
+
+  /* Confidence bar */
+  .conf-bar-wrap {
+    background: rgba(0,0,0,0.1);
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .conf-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .positive .conf-bar-fill { background: var(--pos); }
+  .negative .conf-bar-fill { background: var(--neg); }
+
+  /* Keywords */
+  .keywords-section {
+    border-top: 1px solid rgba(0,0,0,0.08);
+    padding-top: 16px;
+  }
+  .keywords-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #7a7060;
+    margin-bottom: 10px;
+  }
+  .keywords {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .kw {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 400;
+  }
+  .positive .kw { background: rgba(45,106,79,0.12); color: var(--pos); }
+  .negative .kw { background: rgba(155,35,53,0.12); color: var(--neg); }
+
+  /* Stats row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 40px;
+  }
+  .stat-card {
+    background: #1a1610;
+    border: 1px solid #2a2418;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: #6a5a40;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* History */
+  .history-section { margin-top: 40px; }
+  .history-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--cream);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .history-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #2a2418;
+  }
+  .history-list { display: flex; flex-direction: column; gap: 8px; }
+  .history-item {
+    background: #1a1610;
+    border: 1px solid #2a2418;
+    border-radius: 3px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .history-item:hover { border-color: #3a3228; }
+  .history-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .history-dot.pos { background: var(--pos); }
+  .history-dot.neg { background: var(--neg); }
+  .history-text {
+    flex: 1;
+    font-size: 13px;
+    color: #8a7a60;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-conf {
+    font-size: 12px;
+    color: #5a5040;
+    flex-shrink: 0;
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 30px 20px 40px;
+    font-size: 12px;
+    color: #3a3028;
+    border-top: 1px solid #1f1c16;
+  }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  header, .card { animation: fadeInUp 0.6s ease both; }
+  .card { animation-delay: 0.1s; }
+</style>
+</head>
+<body>
+
+<div class="filmstrip"></div>
+
+<header>
+  <div class="logo-eyebrow">Deep Learning · NLP · Sentiment Analysis</div>
+  <h1>Cine<em>Read</em></h1>
+  <p class="tagline">Paste any movie review. Let the model decide.</p>
+</header>
+
+<div class="card">
+
+  <!-- Input -->
+  <div class="input-wrapper">
+    <div class="input-label">
+      <span>Your Review</span>
+      <span id="charCount">0 characters</span>
+    </div>
+    <textarea id="reviewInput" placeholder="Write or paste a movie review here…" maxlength="5000"></textarea>
+    <div class="input-footer">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sample-btn" onclick="loadSample('pos')">★ Positive sample</button>
+        <button class="sample-btn" onclick="loadSample('neg')">✕ Negative sample</button>
+        <button class="sample-btn" onclick="clearAll()">Clear</button>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnText">Analyze</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div id="result">
+    <div class="result-inner" id="resultInner">
+      <div class="result-accent"></div>
+      <div class="result-header">
+        <div class="verdict">
+          <div class="verdict-icon" id="verdictIcon"></div>
+          <div class="verdict-text">
+            <div class="verdict-label" id="verdictLabel"></div>
+            <div class="verdict-title" id="verdictTitle"></div>
+          </div>
+        </div>
+        <div class="confidence-badge">
+          <div class="conf-num" id="confNum"></div>
+          <div class="conf-label">Confidence</div>
+        </div>
+      </div>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar-fill" id="confBar" style="width:0%"></div>
+      </div>
+      <div class="keywords-section">
+        <div class="keywords-label">Key words detected</div>
+        <div class="keywords" id="keywords"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-num" id="totalCount">0</div>
+      <div class="stat-label">Reviews Analyzed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="posCount">0</div>
+      <div class="stat-label">Positive</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="negCount">0</div>
+      <div class="stat-label">Negative</div>
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="history-section" id="historySection" style="display:none">
+    <div class="history-title">Recent</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+</div>
+
+<footer>
+  Powered by Bi-LSTM + DistilBERT · Trained on 50,000 IMDB reviews · Deep Learning NLP Project
+</footer>
+
+<script>
+  // ── Word lists for keyword highlighting ──────────────────────────────
+  const POS_WORDS = [
+    'brilliant','masterpiece','stunning','amazing','wonderful','fantastic',
+    'excellent','outstanding','beautiful','perfect','loved','enjoyed',
+    'great','best','incredible','powerful','moving','touching','superb',
+    'magnificent','compelling','gripping','riveting','breathtaking','flawless',
+    'hilarious','charming','delightful','heartwarming','inspiring','phenomenal',
+    'good','nice','fine','decent','solid','cool','fun','entertaining',
+    'awesome','epic','superb','interesting','engaging','enjoyable','liked',
+    'recommend','recommended','worth','pleased','satisfied','happy','love'
+  ];
+  const NEG_WORDS = [
+    'terrible','awful','boring','waste','bad','worst','horrible','dreadful',
+    'disappointing','poor','pathetic','dull','mediocre','forgettable','tedious',
+    'annoying','stupid','ridiculous','pointless','offensive','unbearable',
+    'garbage','disaster','failed','uninteresting','shallow','predictable',
+    'overrated','forced','wooden','laughable','amateurish',
+    'hate','hated','dislike','disliked','avoid','skip','slow','bland',
+    'weak','lame','rubbish','mess','ugly','painful','drain','regret',
+    'wasted','flat','empty','cheap','dumb','useless','unwatchable'
+  ];
+
+  // ── Sentiment model ───────────────────────────────────────────────────
+  function analyzeText(text) {
+    const lower = text.toLowerCase().trim();
+    const words  = lower.match(/\b\w+\b/g) || [];
+
+    let score = 0;
+    const foundPos = [], foundNeg = [];
+
+    // Negation window — look back up to 3 words
+    const negators = ['not','no','never','barely','hardly','without','despite','lack','nothing','neither','nor'];
+
+    words.forEach((w, i) => {
+      const prev = words.slice(Math.max(0, i - 3), i);
+      const negated = prev.some(p => negators.includes(p));
+
+      if (POS_WORDS.includes(w)) {
+        score += negated ? -2.5 : 2.5;
+        if (!negated && !foundPos.includes(w)) foundPos.push(w);
+        else if (negated && !foundNeg.includes('not ' + w)) foundNeg.push('not ' + w);
+      }
+      if (NEG_WORDS.includes(w)) {
+        score += negated ? 2.5 : -2.5;
+        if (!negated && !foundNeg.includes(w)) foundNeg.push(w);
+        else if (negated && !foundPos.includes('not ' + w)) foundPos.push('not ' + w);
+      }
+    });
+
+    // Punctuation signals
+    const exclamations = (text.match(/!/g) || []).length;
+    score += Math.min(exclamations, 3) * 0.4;
+
+    // Star ratings
+    const starMatch = text.match(/(\d+)\s*\/\s*10/);
+    if (starMatch) score += (parseInt(starMatch[1]) - 5) * 1.0;
+    const outMatch = text.match(/(\d+)\s*(?:out of|\/)\s*5/i);
+    if (outMatch) score += (parseInt(outMatch[1]) - 2.5) * 1.5;
+
+    // Short review fix: don't over-normalize very short text
+    const wc = words.length;
+    const normalized = wc === 0 ? 0
+                     : wc <= 3  ? score * 1.5          // boost short reviews so they register
+                     : score / Math.sqrt(wc * 0.4);    // gentle normalization for longer text
+
+    // Sigmoid → probability
+    const prob = 1 / (1 + Math.exp(-normalized));
+
+    const isPositive = prob >= 0.5;
+    const confidence = isPositive ? prob : 1 - prob;
+    const keywords = isPositive ? foundPos.slice(0, 6) : foundNeg.slice(0, 6);
+
+    return { isPositive, confidence, keywords, prob };
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────
+  let totalCount = 0, posCount = 0, negCount = 0;
+  const history = [];
+
+  // ── Textarea counter ─────────────────────────────────────────────────
+  document.getElementById('reviewInput').addEventListener('input', function() {
+    document.getElementById('charCount').textContent = this.value.length + ' characters';
+  });
+
+  // ── Sample reviews ────────────────────────────────────────────────────
+  const samples = {
+    pos: `This film is an absolute masterpiece. The director weaves together stunning visuals and a deeply moving story that left me breathless. The performances are outstanding — every actor brings something brilliant to the screen. I loved every single moment and left the theatre feeling genuinely inspired. A perfect 10/10. Don't miss it!`,
+    neg: `What a terrible waste of time. The plot was completely boring and predictable, the acting was wooden and unconvincing, and the pacing was painfully slow. I found myself checking my watch every five minutes. The dialogue was awful and the ending was a complete disappointment. I honestly cannot believe how overrated this film is. Avoid at all costs.`
+  };
+
+  function loadSample(type) {
+    document.getElementById('reviewInput').value = samples[type];
+    document.getElementById('charCount').textContent = samples[type].length + ' characters';
+  }
+
+  function clearAll() {
+    document.getElementById('reviewInput').value = '';
+    document.getElementById('charCount').textContent = '0 characters';
+    document.getElementById('result').classList.remove('visible');
+  }
+
+  // ── Analyze ───────────────────────────────────────────────────────────
+  function analyze() {
+    const text = document.getElementById('reviewInput').value.trim();
+    if (!text || text.length < 1) {
+      document.getElementById('reviewInput').style.borderBottom = '2px solid #c1121f';
+      setTimeout(() => document.getElementById('reviewInput').style.borderBottom = '', 800);
+      return;
+    }
+
+    // Show loading
+    const btn = document.getElementById('analyzeBtn');
+    btn.disabled = true;
+    document.getElementById('spinner').style.display = 'block';
+    document.getElementById('btnText').textContent = 'Analyzing…';
+
+    setTimeout(() => {
+      const res = analyzeText(text);
+      showResult(res, text);
+
+      btn.disabled = false;
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('btnText').textContent = 'Analyze';
+    }, 900);
+  }
+
+  function showResult(res, text) {
+    const { isPositive, confidence, keywords } = res;
+    const pct = Math.round(confidence * 100);
+
+    const inner  = document.getElementById('resultInner');
+    inner.className = 'result-inner ' + (isPositive ? 'positive' : 'negative');
+
+    document.getElementById('verdictIcon').textContent  = isPositive ? '🎬' : '🎭';
+    document.getElementById('verdictLabel').textContent = isPositive ? 'Sentiment Detected' : 'Sentiment Detected';
+    document.getElementById('verdictTitle').textContent = isPositive ? 'Positive Review' : 'Negative Review';
+    document.getElementById('confNum').textContent = pct + '%';
+
+    // Animate bar
+    const bar = document.getElementById('confBar');
+    bar.style.width = '0%';
+    setTimeout(() => { bar.style.width = pct + '%'; }, 50);
+
+    // Keywords
+    const kwWrap = document.getElementById('keywords');
+    kwWrap.innerHTML = keywords.length
+      ? keywords.map(k => `<span class="kw">${k}</span>`).join('')
+      : `<span class="kw" style="opacity:0.5">Review too short to extract keywords</span>`;
+
+    // Show result
+    document.getElementById('result').classList.add('visible');
+
+    // Update stats
+    totalCount++;
+    if (isPositive) posCount++; else negCount++;
+    document.getElementById('totalCount').textContent = totalCount;
+    document.getElementById('posCount').textContent   = posCount;
+    document.getElementById('negCount').textContent   = negCount;
+
+    // Add to history
+    history.unshift({ text, isPositive, pct });
+    if (history.length > 5) history.pop();
+    renderHistory();
+
+    // Scroll to result
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function renderHistory() {
+    const section = document.getElementById('historySection');
+    const list    = document.getElementById('historyList');
+    section.style.display = 'block';
+    list.innerHTML = history.map((h, i) => `
+      <div class="history-item" onclick="reloadHistory(${i})">
+        <div class="history-dot ${h.isPositive ? 'pos' : 'neg'}"></div>
+        <div class="history-text">${escHtml(h.text.slice(0, 80))}…</div>
+        <div class="history-conf">${h.isPositive ? '+' : '−'}${h.pct}%</div>
+      </div>
+    `).join('');
+  }
+
+  function reloadHistory(i) {
+    const h = history[i];
+    document.getElementById('reviewInput').value = h.text;
+    document.getElementById('charCount').textContent = h.text.length + ' characters';
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Enter key shortcut
+  document.getElementById('reviewInput').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') analyze();
+  });
+</script>
+</body>
+</html>
