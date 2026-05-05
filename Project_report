@@ -1,0 +1,137 @@
+FINAL PROJECT REPORT
+Movie Review Sentiment Analysis
+Using Deep Learning and NLP
+A Comparative Study of Bi-LSTM and DistilBERT Architectures
+Team Members	Member 1:Himaja Pusunuru
+Member 2: Tirumala Rao Peddakota
+Member 3: Leena Reddy Daida
+Submission Date	May 5, 2025 
+Course	Natural language processing 
+
+ 
+Abstract
+This report presents a deep learning-based sentiment analysis system designed to classify movie reviews as positive or negative. Using the IMDB dataset comprising 50,000 balanced movie reviews, we developed and compared two models: a Bidirectional Long Short-Term Memory (Bi-LSTM) network with a self-attention mechanism, and a fine-tuned DistilBERT transformer model. Results demonstrate that DistilBERT achieves 93.41% accuracy and 0.9843 AUC-ROC on the test set, outperforming Bi-LSTM which achieves 89.64% accuracy and 0.9598 AUC-ROC. A web-based interface was also developed for real-time prediction of review sentiment.
+1. Introduction
+1.1 Background and Motivation
+The rapid growth of online content has generated enormous volumes of user-generated text, particularly in the form of product and movie reviews. Automatically classifying the sentiment of these reviews is a fundamental task in Natural Language Processing (NLP) with wide practical applications in recommendation systems, business intelligence, and content moderation.
+Traditional machine learning approaches such as Naive Bayes and Support Vector Machines rely on hand-crafted features and struggle to capture contextual meaning. Deep learning models, particularly recurrent neural networks and transformer architectures, have demonstrated superior ability to understand language context and semantics.
+1.2 Importance and Relevance
+Sentiment analysis is a core building block of modern AI applications. For the entertainment industry, automated review classification can help streaming platforms recommend content, studios gauge audience reception, and critics aggregate opinions at scale. The IMDB dataset is one of the most widely used benchmarks in NLP research.
+1.3 Objectives
+•	Build an end-to-end sentiment analysis pipeline using deep learning
+•	Implement and compare two model architectures: Bi-LSTM and DistilBERT
+•	Achieve high classification performance across multiple evaluation metrics
+•	Develop a web-based interface for real-time sentiment prediction
+•	Evaluate and discuss the trade-offs between model complexity and performance
+
+
+
+
+
+2. Problem Statement
+2.1 Problem Definition
+Given a text movie review written in natural language, the goal is to classify it as either positive (label=1) or negative (label=0). This is a binary text classification problem. The input is raw, unstructured text of variable length. The output is a binary label alongside a confidence score.
+2.2 Challenges in Existing Solutions
+•	Variable-length text: Reviews range from 32 to 13,704 characters, requiring robust sequence handling
+•	Contextual negation: Phrases like "not brilliant" reverse sentiment and confuse simple keyword-based models
+•	Sarcasm and irony: Some reviews use positive language to convey negative sentiment
+•	HTML noise: The raw IMDB dataset contains HTML tags such as <br /> that must be cleaned
+•	Computational cost: Transformer models require significant memory and compute resources
+3. Project Architecture
+3.1 System Overview
+The system follows a modular pipeline architecture with five stages: data ingestion, preprocessing, model training, evaluation, and inference. Both models share the preprocessing stage but diverge at tokenization and model architecture.
+3.2 Pipeline Stages
+•	Stage 1 — Data Ingestion: Load the IMDB CSV dataset, validate columns and encode labels.
+•	Stage 2 — Text Preprocessing: Strip HTML tags, remove special characters, convert to lowercase.
+•	Stage 3 — Tokenization: Custom vocabulary for Bi-LSTM; HuggingFace WordPiece tokenizer for DistilBERT.
+•	Stage 4 — Model Training: Train using AdamW optimizer with Cosine Annealing and gradient clipping.
+•	Stage 5 — Evaluation: Compute all metrics and generate confusion matrices and ROC curves.
+3.3 Model Architectures
+Bi-LSTM Model: The input embedding layer maps each word index to a 100-dimensional vector. A two-layer Bidirectional LSTM with 256 hidden units per direction processes the sequence. A self-attention mechanism computes a weighted sum over all hidden states. Two fully connected layers with ReLU activation and dropout (0.4) produce the binary output.
+DistilBERT Model: The pre-trained DistilBERT-base-uncased model is loaded with its 6 transformer layers and 768-dimensional hidden states. The [CLS] token representation is extracted, passed through a pre-classifier linear layer with ReLU, dropout (0.3), and a final linear classification layer.
+4. Tools and Technologies
+4.1 Software
+Tool / Library	Version	Purpose
+Python	3.13	Primary programming language
+PyTorch	2.0+	Deep learning framework
+HuggingFace Transformers	4.35+	DistilBERT model and tokenizer
+Pandas	2.0+	Dataset loading and manipulation
+Scikit-learn	1.3+	Train/test split, evaluation metrics
+NumPy	1.24+	Numerical operations
+Matplotlib & Seaborn	3.7+	Visualization and plots
+HTML / CSS / JavaScript	ES6	Web interface for prediction
+Visual Studio Code	Latest	Development environment
+
+4.2 Hardware Requirements
+•	CPU: Intel Core i5 or equivalent (minimum for Bi-LSTM training)
+•	GPU: NVIDIA GPU with CUDA support recommended for DistilBERT fine-tuning
+•	RAM: Minimum 8GB; 16GB recommended for DistilBERT
+•	Storage: At least 5GB free for dataset, model weights, and dependencies
+5. Methodology
+5.1 Dataset
+The IMDB Large Movie Review Dataset contains 50,000 movie reviews evenly split between 25,000 positive and 25,000 negative examples. The dataset is perfectly balanced, eliminating the need for class weighting.
+5.2 Data Splitting
+•	Training set: 40,000 reviews (80%)
+•	Validation set: 5,000 reviews (10%) — used for hyperparameter tuning
+•	Test set: 5,000 reviews (10%) — used exclusively for final evaluation
+5.3 Preprocessing Steps
+•	HTML tag removal: Regular expressions strip all <br />, <b>, and other HTML elements
+•	Special character removal: Non-alphabetic characters replaced with spaces
+•	Case normalization: All text converted to lowercase
+•	Whitespace normalization: Multiple spaces collapsed to single spaces
+•	Sequence padding/truncation: All sequences fixed to 256 tokens
+5.4 Training Configuration
+Both models were trained using the AdamW optimizer with weight decay of 1e-4. A Cosine Annealing learning rate scheduler gradually reduces the learning rate. Gradient clipping with maximum norm of 1.0 was applied. Bi-LSTM was trained for 5 epochs with learning rate 1e-3 and batch size 32. DistilBERT was fine-tuned for 3 epochs with learning rate 2e-5 and batch size 16.
+5.5 Hyperparameters
+Parameter	Bi-LSTM	DistilBERT
+Learning Rate	1e-3	2e-5
+Batch Size	32	16
+Epochs	5	3
+Max Sequence Length	256 words	256 tokens
+Dropout Rate	0.4	0.3
+Weight Decay	1e-4	1e-4
+Optimizer	AdamW	AdamW
+6. Results
+6.1 Quantitative Performance
+Both models were evaluated on the held-out test set of 5,000 reviews. The table below summarizes performance across all five evaluation metrics:
+
+Metric	Bi-LSTM	DistilBERT	Improvement	Winner
+Accuracy	89.64%	93.41%	+3.77%	DistilBERT
+Precision	88.79%	92.98%	+4.19%	DistilBERT
+Recall	90.63%	93.88%	+3.25%	DistilBERT
+F1-Score	89.70%	93.43%	+3.73%	DistilBERT
+AUC-ROC	0.9598	0.9843	+0.0245	DistilBERT
+
+6.2 Key Findings
+•	DistilBERT outperforms Bi-LSTM on all five evaluation metrics, demonstrating the advantage of pre-trained transformers.
+•	Bi-LSTM achieves competitive performance (89.64% accuracy) while being significantly faster to train.
+•	Both models maintain high AUC-ROC scores above 0.95, indicating strong discriminative power.
+•	DistilBERT shows strongest improvement in precision (+4.19%), reducing false positive predictions.
+6.3 Practical Applications
+•	Movie streaming platforms can automatically tag and filter user reviews
+•	Film studios can monitor audience reception in real-time during release periods
+•	The web interface enables non-technical users to analyze reviews without coding knowledge
+
+
+7. Discussion
+7.1 Model Comparison
+DistilBERT's pre-trained contextual representations provide a significant advantage over Bi-LSTM's learned embeddings. DistilBERT understands complex linguistic patterns including negation, sarcasm, and domain-specific vocabulary. However, it requires approximately 4x longer training time and more memory.
+The Bi-LSTM with attention is a strong lightweight alternative. Its self-attention layer effectively identifies sentiment-bearing words, making it interpretable and performant. For resource-constrained environments, Bi-LSTM offers a practical trade-off.
+7.2 Challenges and Mitigations
+•	Long reviews: Truncating to 256 tokens may discard useful information. Mitigation: Use hierarchical attention for very long texts.
+•	Sarcasm detection: Both models occasionally misclassify sarcastic reviews. Mitigation: Augment training data with sarcastic examples.
+•	Training time: DistilBERT takes 1-2 hours on CPU. Mitigation: Use a GPU with CUDA support.
+•	Domain shift: Models trained on IMDB may not generalize to other domains. Mitigation: Fine-tune on domain-specific data.
+7.3 Future Work
+•	Implement SHAP for model explainability and feature importance visualization
+•	Explore larger transformer models such as RoBERTa or DeBERTa
+•	Extend to multi-class sentiment analysis (5-class rating prediction)
+•	Deploy as a REST API using Flask connected to the web interface
+8. References
+[1] A. L. Maas et al., "Learning Word Vectors for Sentiment Analysis," ACL, 2011, pp. 142-150.
+[2] V. Sanh et al., "DistilBERT, a distilled version of BERT," arXiv:1910.01108, 2019.
+[3] S. Hochreiter and J. Schmidhuber, "Long Short-Term Memory," Neural Computation, vol. 9, no. 8, 1997.
+[4] A. Vaswani et al., "Attention Is All You Need," NeurIPS, 2017, pp. 5998-6008.
+[5] J. Devlin et al., "BERT: Pre-training of Deep Bidirectional Transformers," NAACL-HLT, 2019.
+[6] I. Loshchilov and F. Hutter, "Decoupled Weight Decay Regularization," ICLR, 2019.
+[7] T. Wolf et al., "Transformers: State-of-the-Art NLP," EMNLP Demos, 2020, pp. 38-45.
