@@ -1,6 +1,6 @@
 # 🎬 Movie Review Sentiment Analysis using Deep Learning & NLP
 
-> **Course Project** | IEEE-format Final Report | Due: May 5
+> **Course Project**
 
 ## Team Information
 Himaja Pusunuru
